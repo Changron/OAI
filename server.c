@@ -8,11 +8,28 @@
 
 #include <time.h>
 
-int main(int argc , char *argv[])
+double time_diff(struct timespec t1, struct timespec t2)
+{
+    return (t2.tv_sec - t1.tv_sec) + (double)(t2.tv_nsec - t1.tv_nsec)/1000000000;
 
+}
+
+double work(int nstep){
+    struct timespec t1, t2;
+    int i;
+    clock_gettime(CLOCK_REALTIME, &t1);
+    for(i=0;i<nstep;i++){}
+    clock_gettime(CLOCK_REALTIME, &t2);
+    //return t2.tv_nsec - t1.tv_nsec;
+    //printf("T1: %d %d T2: %ld %ld\n",(int)t1.tv_sec,(int)t1.tv_nsec,(long)t2.tv_sec,(long)t2.tv_nsec);
+    return time_diff(t1, t2);
+}
+
+int main(int argc , char *argv[])
 {
     //socket create
-	int inputBuffer;
+    int recvBuffer;
+    double sendBuffer;
     int sockfd = 0,forClientSockfd = 0;
     sockfd = socket(AF_INET , SOCK_STREAM , 0);
 
@@ -31,19 +48,24 @@ int main(int argc , char *argv[])
     bind(sockfd,(struct sockaddr *)&serverInfo,sizeof(serverInfo));
     listen(sockfd,5);
 
-	struct timespec t1, t2;
-	int i;	
-	clock_gettime(CLOCK_REALTIME, &t1);
-	for(i=0;i<1000;i++){}
-	clock_gettime(CLOCK_REALTIME, &t2);
-	printf("Time: %d\n",t2.tv_nsec - t1.tv_nsec);
-	
-
+    printf("Waiting for connection...\n");
     while(1){
         forClientSockfd = accept(sockfd,(struct sockaddr*) &clientInfo, &addrlen);
-        recv(forClientSockfd,inputBuffer,sizeof(inputBuffer),0);
-        send(forClientSockfd,message,sizeof(message),0);
-        printf("Get:%s\n",inputBuffer);
+	printf("Connected.\n");
+
+        int i, testCount;
+        recv(forClientSockfd,&testCount,sizeof(testCount),0);
+        // recv
+        for(i=0;i<testCount;i++){
+            recv(forClientSockfd,&recvBuffer,sizeof(recvBuffer),0);
+
+            sendBuffer = work(recvBuffer);
+
+            send(forClientSockfd,&sendBuffer,sizeof(sendBuffer),0);
+            printf("Get:%d\n",recvBuffer);
+        }
+        printf("Done.\n");
     }
     return 0;
 }
+

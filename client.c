@@ -7,42 +7,72 @@
 #include <netinet/in.h>
 #include <arpa/inet.h>
 
+#include <time.h>
+
+double time_diff(struct timespec t1, struct timespec t2)
+{
+    return (t2.tv_sec - t1.tv_sec) + (double)(t2.tv_nsec - t1.tv_nsec)/1000000000;
+}
+
 int main(int argc , char *argv[])
 {
 
-    //socket的建立
+    //socket create
     int sockfd = 0;
-    sockfd = socket(AF_INET , SOCK_STREAM , 0);
+    sockfd = socket(AF_INET , SOCK_STREAM , 0); 
 
     if (sockfd == -1){
         printf("Fail to create a socket.");
-    }
+    }   
 
-    //socket的連線
-
+    //socket connect
     struct sockaddr_in info;
     bzero(&info,sizeof(info));
     info.sin_family = PF_INET;
 
+    char addr[30];
+	printf("IP:");
+	scanf("%s", addr);
+
     //localhost test
-    info.sin_addr.s_addr = inet_addr("127.0.0.1");
+    info.sin_addr.s_addr = inet_addr(addr);
     info.sin_port = htons(8700);
 
-
+	printf("Connecting...\n");
     int err = connect(sockfd,(struct sockaddr *)&info,sizeof(info));
     if(err==-1){
-        printf("Connection error");
+        printf("Connection error\n");
     }
-
-
+	
+        
     //Send a message to server
-    char message[] = {"Hi there"};
-    char receiveMessage[100] = {};
-    send(sockfd,message,sizeof(message),0);
-     recv(sockfd,receiveMessage,sizeof(receiveMessage),0);
+    int sendBuffer;
+    double recvBuffer;
+    int testCount;
+    
+    printf("Loop count:");
+    scanf("%d",&sendBuffer);
+    printf("Testcase count:");
+    scanf("%d",&testCount);
 
-    printf("%s",receiveMessage);
-    printf("close Socket\n");
+    int i;
+
+    struct timespec t1, t2;
+    double total_time;
+
+    send(sockfd, &testCount,sizeof(testCount),0);
+    
+    printf("Total\t\tUE2MEC\t\tMEC\t\tMEC2Cloud\tCloud\n");
+    for(i=0;i<testCount;i++){
+    	clock_gettime(CLOCK_REALTIME, &t1);
+        send(sockfd, &sendBuffer,sizeof(sendBuffer),0);
+        recv(sockfd, &recvBuffer,sizeof(recvBuffer),0);
+    	clock_gettime(CLOCK_REALTIME, &t2);
+        total_time = time_diff(t1,t2);
+	//printf("Time: %lf\n",(double)recvBuffer/10000000);
+        printf("%lf\t%lf\t%lf\n",total_time,total_time-recvBuffer,recvBuffer);
+    }
+    printf("Close Socket.\n");
     close(sockfd);
     return 0;
 }
